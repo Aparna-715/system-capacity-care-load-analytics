@@ -379,3 +379,121 @@ st.subheader("Summary Statistics: Child Movement")
 movement_summary = df[movement_cols].describe().round(2)
 
 st.dataframe(movement_summary, use_container_width=True)
+#Calculate KPI 1 — Net Intake Pressure
+# Define the required columns
+apprehensions = "Children apprehended and placed in CBP custody*"
+discharges = "Children discharged from HHS Care"
+
+# Calculate Net Intake Pressure
+df["Net Intake Pressure"] = df[apprehensions] - df[discharges]
+
+# Display the first 10 rows
+st.subheader("Net Intake Pressure Analysis")
+
+st.dataframe(
+    df[["Date", apprehensions, discharges, "Net Intake Pressure"]].head(10),
+    use_container_width=True
+)
+
+# Plot the trend
+fig, ax = plt.subplots(figsize=(14, 5))
+
+ax.plot(
+    df["Date"],
+    df["Net Intake Pressure"],
+    label="Net Intake Pressure"
+)
+
+ax.axhline(0, linestyle="--", alpha=0.7)
+ax.set_title("Daily Net Intake Pressure Over Time")
+ax.set_xlabel("Date")
+ax.set_ylabel("Apprehensions - HHS Discharges")
+
+plt.xticks(rotation=45)
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+# Calculate summary values
+average_pressure = round(df["Net Intake Pressure"].mean(), 2)
+maximum_pressure = df["Net Intake Pressure"].max()
+
+# Display KPI metrics
+col1, col2 = st.columns(2)
+
+col1.metric("Average Net Intake Pressure", f"{average_pressure:,.2f}")
+col2.metric("Maximum Net Intake Pressure", f"{maximum_pressure:,.2f}")
+# Count positive, negative, and zero values
+positive_days = (df["Net Intake Pressure"] > 0).sum()
+negative_days = (df["Net Intake Pressure"] < 0).sum()
+zero_days = (df["Net Intake Pressure"] == 0).sum()
+
+# Display results in the dashboard
+st.subheader("Net Intake Pressure Breakdown")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Positive Values", f"{positive_days:,}")
+col2.metric("Negative Values", f"{negative_days:,}")
+col3.metric("Zero Values", f"{zero_days:,}")
+#KPI 2: Care Load Volatility Index
+# Convert HHS Care column to numeric
+df["Children in HHS Care"] = pd.to_numeric(
+    df["Children in HHS Care"]
+    .astype(str)
+    .str.replace(",", "", regex=False)
+    .str.strip(),
+    errors="coerce"
+)
+
+st.success("HHS Care column converted to numeric!")
+
+st.write("Column data type:", str(df["Children in HHS Care"].dtype))
+st.write("Missing values:", int(df["Children in HHS Care"].isna().sum()))
+
+# Sort data chronologically before calculating changes
+df = df.sort_values("Date").reset_index(drop=True)
+
+# Calculate change in HHS Care
+df["HHS Care Change"] = df["Children in HHS Care"].diff()
+
+# Display first 10 rows
+st.subheader("HHS Care Change: First 10 Rows")
+
+st.dataframe(
+    df[["Date", "Children in HHS Care", "HHS Care Change"]].head(10),
+    use_container_width=True
+)
+
+# Calculate Care Load Volatility
+care_volatility = df["HHS Care Change"].std()
+
+st.metric(
+    "KPI 2 – Care Load Volatility",
+    f"{care_volatility:,.2f}" if pd.notna(care_volatility) else "N/A"
+)
+
+# Plot changes over time
+fig, ax = plt.subplots(figsize=(14, 5))
+
+ax.plot(
+    df["Date"],
+    df["HHS Care Change"],
+    label="Change in HHS Care"
+)
+
+ax.axhline(0, linestyle="--", alpha=0.7)
+ax.set_title("KPI 2: Care Load Volatility Over Time")
+ax.set_xlabel("Date")
+ax.set_ylabel("Change in Number of Children")
+
+plt.xticks(rotation=45)
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
