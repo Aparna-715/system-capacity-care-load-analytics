@@ -311,3 +311,71 @@ st.caption(
 )
 
 st.success("Dataset inspection and exploratory analysis completed!")
+fig, ax = plt.subplots(figsize=(14, 5))
+
+ax.plot(
+    df["Date"],
+    df["Children in CBP custody"],
+    label="Children in CBP Custody"
+)
+
+ax.plot(
+    df["Date"],
+    df["Children in HHS Care"],
+    label="Children in HHS Care"
+)
+
+ax.set_title("CBP Custody vs HHS Care Over Time")
+ax.set_xlabel("Date")
+ax.set_ylabel("Number of Children")
+plt.xticks(rotation=45)
+
+ax.legend()
+ax.grid(True, alpha=0.3)
+fig.tight_layout()
+
+st.pyplot(fig)
+plt.close(fig)
+fig, ax = plt.subplots(figsize=(14, 6))
+
+ax.plot(
+    df["Date"],
+    df["Children apprehended and placed in CBP custody*"],
+    label="Apprehensions"
+)
+
+ax.plot(
+    df["Date"],
+    df["Children transferred out of CBP custody"],
+    label="Transfers out of CBP"
+)
+
+ax.plot(
+    df["Date"],
+    df["Children discharged from HHS Care"],
+    label="HHS Discharges"
+)
+
+ax.set_title("Apprehensions, Transfers, and Discharges Over Time")
+ax.set_xlabel("Date")
+ax.set_ylabel("Number of Children")
+
+plt.xticks(rotation=45)
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+movement_cols = [
+    "Children apprehended and placed in CBP custody*",
+    "Children transferred out of CBP custody",
+    "Children discharged from HHS Care"
+]
+
+st.subheader("Summary Statistics: Child Movement")
+
+movement_summary = df[movement_cols].describe().round(2)
+
+st.dataframe(movement_summary, use_container_width=True)
