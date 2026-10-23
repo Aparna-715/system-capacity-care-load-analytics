@@ -497,3 +497,184 @@ ax.grid(True, alpha=0.3)
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
+
+#KPI 3 — Backlog Accumulation Rate
+# Calculate change in HHS Care
+df["HHS Care Change"] = df["Children in HHS Care"].diff()
+
+# Count increases and decreases
+increases = (df["HHS Care Change"] > 0).sum()
+decreases = (df["HHS Care Change"] < 0).sum()
+
+# Calculate average change
+backlog_accumulation_rate = df["HHS Care Change"].mean()
+
+# Display KPI results
+st.subheader("KPI 3: HHS Care Load Changes")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Observations with an Increase", f"{increases:,}")
+col2.metric("Observations with a Decrease", f"{decreases:,}")
+col3.metric(
+    "Average HHS Care Change",
+    f"{backlog_accumulation_rate:,.2f}"
+    if pd.notna(backlog_accumulation_rate) else "N/A"
+)
+
+# Plot change over time
+fig, ax = plt.subplots(figsize=(14, 5))
+
+ax.plot(
+    df["Date"],
+    df["HHS Care Change"],
+    label="Change in HHS Care"
+)
+
+ax.axhline(0, linestyle="--", alpha=0.7)
+ax.set_title("KPI 3: HHS Care Load Accumulation Over Time")
+ax.set_xlabel("Date")
+ax.set_ylabel("Change in Children in Care")
+
+plt.xticks(rotation=45)
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+#KPI 4 — Discharge Offset Ratio
+# Define columns
+apprehensions_col = "Children apprehended and placed in CBP custody*"
+discharges_col = "Children discharged from HHS Care"
+
+# Convert columns to numeric
+for col in [apprehensions_col, discharges_col]:
+    df[col] = pd.to_numeric(
+        df[col]
+        .astype(str)
+        .str.replace(",", "", regex=False)
+        .str.strip(),
+        errors="coerce"
+    )
+
+# Display data quality information
+st.subheader("KPI 4: Discharge Offset Ratio")
+
+st.write("Column data types:")
+st.write(df[[apprehensions_col, discharges_col]].dtypes.astype(str))
+
+st.write("Missing values:")
+st.dataframe(df[[apprehensions_col, discharges_col]].isna().sum())
+
+# Calculate totals
+total_apprehensions = df[apprehensions_col].sum()
+total_discharges = df[discharges_col].sum()
+
+# Calculate ratio safely
+if total_apprehensions != 0:
+    discharge_offset_ratio = total_discharges / total_apprehensions
+else:
+    discharge_offset_ratio = float("nan")
+
+# Display totals
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Total Apprehensions", f"{total_apprehensions:,.0f}")
+col2.metric("Total HHS Discharges", f"{total_discharges:,.0f}")
+col3.metric(
+    "Discharge Offset Ratio",
+    f"{discharge_offset_ratio:.4f}"
+    if pd.notna(discharge_offset_ratio) else "N/A"
+)
+
+if pd.notna(discharge_offset_ratio):
+    st.write(f"Discharge Offset Percentage: {discharge_offset_ratio * 100:.2f}%")
+else:
+    st.warning("Cannot calculate the ratio because total apprehensions are zero.")
+
+# Bar chart
+fig, ax = plt.subplots(figsize=(8, 5))
+
+ax.bar(
+    ["CBP Apprehensions", "HHS Discharges"],
+    [total_apprehensions, total_discharges]
+)
+
+ax.set_title("KPI 4: Total Apprehensions vs HHS Discharges")
+ax.set_ylabel("Total Recorded Events")
+ax.grid(axis="y", alpha=0.3)
+
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+# Create KPI summary table
+kpi_summary = pd.DataFrame({
+    "KPI": [
+        "Net Intake Pressure",
+        "Care Load Volatility",
+        "Average HHS Care Change",
+        "Discharge Offset Ratio"
+    ],
+    "Value": [
+        round(df["Net Intake Pressure"].mean(), 2),
+        round(df["HHS Care Change"].std(), 2),
+        round(df["HHS Care Change"].mean(), 2),
+        round(discharge_offset_ratio, 4)
+        if pd.notna(discharge_offset_ratio) else float("nan")
+    ],
+    "Interpretation": [
+        "Average difference between CBP apprehensions and HHS discharges per observation",
+        "Variability in changes in HHS care population",
+        "Average change in HHS care population per observation",
+        "Ratio of total HHS discharges to total CBP apprehensions"
+    ]
+})
+
+st.subheader("Summary of All KPIs")
+st.dataframe(kpi_summary, use_container_width=True)
+
+# Download KPI summary as a CSV
+csv_data = kpi_summary.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="Download KPI Summary CSV",
+    data=csv_data,
+    file_name="kpi_summary.csv",
+    mime="text/csv"
+)
+#streamlit dashboard
+import os
+import sys
+import subprocess
+from pathlib import Path
+
+import streamlit
+import plotly
+
+print("Python:", sys.version)
+print("Streamlit:", streamlit.__version__)
+print("Plotly:", plotly.__version__)
+
+# Get the current project folder
+BASE_DIR = Path(__file__).resolve().parent
+
+# Check whether app.py exists
+app_path = BASE_DIR / "app.py"
+print("app.py exists:", app_path.exists())
+
+# Check whether the dataset exists
+dataset_path = BASE_DIR / "HHS_Unaccompanied_Alien_Children_Program (1).csv"
+print("Dataset exists:", dataset_path.exists())
+
+# Start the Streamlit dashboard
+if app_path.exists():
+    subprocess.run([
+        sys.executable, "-m", "streamlit", "run",
+        str(app_path),
+        "--server.port", "8502"
+    ])
+else:
+    print("ERROR: app.py was not found in the project folder.")
+    
