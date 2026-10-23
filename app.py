@@ -646,13 +646,11 @@ st.download_button(
 )
 #streamlit dashboard
 import os
-import sys
 import subprocess
 from pathlib import Path
-
 import streamlit
 import plotly
-
+import sys
 print("Python:", sys.version)
 print("Streamlit:", streamlit.__version__)
 print("Plotly:", plotly.__version__)
@@ -675,6 +673,4 @@ if app_path.exists():
         str(app_path),
         "--server.port", "8502"
     ])
-else:
-    print("ERROR: app.py was not found in the project folder.")
-    
+
